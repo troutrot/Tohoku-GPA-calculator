@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "chart.js": "^4.4.9",
+    "chartjs-plugin-datalabels": "^2.2.0",
+    "gridjs": "^6.2.0",
+    "xlsx": "^0.18.5"
+  }
+}

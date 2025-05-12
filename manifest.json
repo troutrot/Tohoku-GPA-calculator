@@ -1,0 +1,29 @@
+{
+    "name":"Tohoku GPA calculator",
+    "description":"新学務情報システム上でのGPA計算と掲示科目一覧のダウンロード機能を追加",
+    "version":"2.2.7",
+    "manifest_version":3,
+    "content_scripts":[
+        {
+         "js":["content.js"],
+         "matches":["https://unipa.bureau.tohoku.ac.jp/*"],
+         "run_at":"document_end"
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "libs/chart.js/chart.umd.js",
+                "libs/chartjs-plugin-datalabels/chartjs-plugin-datalabels.min.js",
+                "libs/gridjs/gridjs.umd.js",
+                "libs/xlsx/xlsx.full.min.js"
+            ]
+        }
+    ],
+    "icons":{
+        "16":"icon/icon16.png",
+        "48":"icon/icon48.png",
+        "128":"icon/icon128.png"
+    },
+    "author":"木山春生"
+}
