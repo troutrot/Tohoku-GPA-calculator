@@ -1,3 +1,5 @@
+![Package Control](https://img.shields.io/packagecontrol/dt/:agbmcohifheiailbnjmcnapjdnkehajf.svg)
+![Chrome Web Store Users](https://img.shields.io/chrome-web-store/users/agbmcohifheiailbnjmcnapjdnkehajf)
 # Tohoku GPA Calculator
 
 Tohoku GPA Calculator is a Chrome extension that allows students at Tohoku University to directly view their GPA on the Academic Affairs Information System.
