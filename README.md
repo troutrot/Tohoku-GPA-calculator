@@ -1,4 +1,3 @@
-![Package Control](https://img.shields.io/packagecontrol/dt/:agbmcohifheiailbnjmcnapjdnkehajf.svg)
 ![Chrome Web Store Users](https://img.shields.io/chrome-web-store/users/agbmcohifheiailbnjmcnapjdnkehajf)
 # Tohoku GPA Calculator
 
