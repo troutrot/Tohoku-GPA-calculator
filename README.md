@@ -26,7 +26,7 @@ Tohoku GPA Calculator is a Chrome extension that allows students at Tohoku Unive
 ### Setup
 1. Clone the repository:
  ```bash
- git clone https://github.com/your-username/Tohoku-GPA-calculator.git
+ git clone https://github.com/troutrot/Tohoku-GPA-calculator.git
  ```
 2. Navigate to the project directory:
  ```bash
