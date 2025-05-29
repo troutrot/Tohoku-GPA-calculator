@@ -8,14 +8,14 @@ Let's use Tohoku GPA Calculator in 5 minutes. If you are not a student at Tohoku
 
 ## Getting Started
 
-Get started by installing **Tohoku GPA Calculator** from the [Chrome Web Store](https://chromewebstore.google.com/detail/agbmcohifheiailbnjmcnapjdnkehajf?utm_source=item-share-cb).
+Get started by installing Tohoku GPA Calculator from the [Chrome Web Store](https://chromewebstore.google.com/detail/agbmcohifheiailbnjmcnapjdnkehajf?utm_source=item-share-cb).
 
 If you are a developer and want to contribute to the project, you can also run it locally by following the instructions below.
 
 ### What you'll need
 
-- **UNIVERSAL PASSPORT** is required to use Tohoku GPA Calculator.
+- UNIVERSAL PASSPORT is required to use Tohoku GPA Calculator.
   - If your university is included in the [list](https://www.jast-gakuen.com/casestudy/user/), you can use Tohoku GPA Calculator.
 
-- **Chromium-based browser** 
+- Chromium-based browser
   - (e.g., Google Chrome, Microsoft Edge, Brave) to install the extension.

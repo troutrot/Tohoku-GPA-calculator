@@ -113,7 +113,7 @@ tagline: 'Calculate your GPA at Tohoku University',
             items: [
               {
                 label: 'Tutorial',
-                to: '/docs/intro',
+                to: '/intro',
               },
             ],
           },
