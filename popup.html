@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>GPA設定</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+      margin: 0;
+      background: #f6f8fa;
+      color: #222;
+      min-width: 370px;
+    }
+    .container {
+      max-width: 430px;
+      margin: 28px auto;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 4px 16px rgba(44,62,80,0.10);
+      padding: 28px 24px 20px 24px;
+    }
+    h2 {
+      margin-top: 0;
+      margin-bottom: 18px;
+      font-size: 1.15em;
+      color: #2d6cdf;
+      letter-spacing: 0.04em;
+      border-left: 4px solid #2d6cdf;
+      padding-left: 10px;
+      font-weight: 600;
+    }
+    .section {
+      margin-bottom: 28px;
+    }
+    #gradeForm, #classToKeyForm {
+      background: #f9fafb;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(44,62,80,0.04);
+      padding: 14px 10px 6px 10px;
+      margin-bottom: 14px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      transition: background 0.2s;
+      border-radius: 6px;
+      padding: 2px 0;
+    }
+    .row:hover {
+      background: #f0f4fa;
+    }
+    .input-text, .input-number {
+      width: 80px;
+      padding: 6px 10px;
+      border: 1px solid #bfc9d1;
+      border-radius: 5px;
+      font-size: 1em;
+      background: #fff;
+      transition: border 0.2s;
+    }
+    .input-text:focus, .input-number:focus {
+      border: 1.5px solid #2d6cdf;
+      outline: none;
+      background: #f5faff;
+    }
+    .styled-btn {
+      border: none;
+      border-radius: 5px;
+      padding: 7px 16px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 0;
+      box-shadow: 0 1px 3px rgba(44, 62, 80, 0.07);
+      transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+    .styled-btn:active {
+      transform: scale(0.97);
+    }
+    .addBtnColor {
+      background: #27ae60;
+      color: #fff;
+    }
+    .addBtnColor:hover {
+      background: #219150;
+    }
+    .saveBtnColor {
+      background: linear-gradient(90deg, #2d6cdf 60%, #5ea6f7 100%);
+      color: #fff;
+    }
+    .saveBtnColor:hover {
+      background: linear-gradient(90deg, #1d4fa5 60%, #4e8fd1 100%);
+    }
+    .resetBtnColor {
+      background: #e67e22;
+      color: #fff;
+    }
+    .resetBtnColor:hover {
+      background: #ca7c1b;
+    }
+    .delBtnColor {
+      background: #e74c3c;
+      color: #fff;
+      padding: 5px 12px;
+      font-size: 0.97em;
+      border-radius: 4px;
+      margin-left: 8px;
+      margin-top: 0;
+      box-shadow: none;
+      transition: background 0.2s;
+    }
+    .delBtnColor:hover {
+      background: #c0392b;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    #status {
+      margin-top: 14px;
+      font-size: 1em;
+      color: #2d6cdf;
+      min-height: 1.2em;
+      letter-spacing: 0.03em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="section">
+      <h2>成績記号とGPA値を編集</h2>
+      <form id="gradeForm"></form>
+      <div class="btn-group">
+        <button type="button" id="addBtn" class="styled-btn addBtnColor">＋行を追加</button>
+        <button type="button" id="saveBtn" class="styled-btn saveBtnColor">保存</button>
+        <button type="button" id="resetGradeBtn" class="styled-btn resetBtnColor">デフォルトに戻す</button>
+      </div>
+    </div>
+    <div class="section">
+      <h2>classToKeyを編集</h2>
+      <form id="classToKeyForm"></form>
+      <div class="btn-group">
+        <button type="button" id="addClassToKeyBtn" class="styled-btn addBtnColor">＋行を追加</button>
+        <button type="button" id="saveClassToKeyBtn" class="styled-btn saveBtnColor">classToKeyを保存</button>
+        <button type="button" id="resetClassToKeyBtn" class="styled-btn resetBtnColor">デフォルトに戻す</button>
+      </div>
+    </div>
+    <div id="status"></div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

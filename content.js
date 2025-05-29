@@ -1,139 +1,163 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- figure =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-function keepFigure(){
+
+function keepFigure() {
     let data = correctData();
+    // topLevelKey, kubunTypes, gradeLabels の取得
+    let topLevelKey = getTopLevelKey();
+    let kubunTypes = getLevelTypes(topLevelKey);
+
+    // gradeMapのキーを利用して成績区分を動的に生成
+    let gradeLabels = Object.keys(gradeMap).filter(k => k !== "");
+
+    // データ集計
     let preSortedData = data.reduce((acc, sub) => {
-        let key = sub[8] + sub[9];
+        let key = sub.year + sub.term;
         if (!acc[key]) {
-            acc[key] = [];
-            acc[key]['genCreditSum'] = 0;
-            acc[key]['genCreditSumAll'] = 0;
-            acc[key]['genGpSum'] = 0;
-            acc[key]['spcCreditSum'] = 0;
-            acc[key]['spcCreditSumAll'] = 0;
-            acc[key]['spcGpSum'] = 0;
-            acc[key]['grade'] = {
-                'AA': 0,
-                'A': 0,
-                'B': 0,
-                'C': 0,
-                'D': 0,
-                'E': 0
-            };
+            acc[key] = {};
+            kubunTypes.forEach(type => {
+                acc[key][type] = {
+                    creditSum: 0,
+                    creditSumAll: 0,
+                    gpSum: 0,
+                    grade: {}
+                };
+                gradeLabels.forEach(label => {
+                    acc[key][type].grade[label] = 0;
+                });
+            });
         }
-        if (sub[1] === '全学教育科目') {
-            acc[key]['genCreditSumAll'] += Number(sub[5]);
-            if (sub[7] == '○') {
-                acc[key]['genCreditSum'] += Number(sub[5]);
-            }
-            if (sub[6] !== '') {
-                acc[key]['genGpSum'] += Number(sub[5]) * convGrade(sub[6]);
-                if(sub[6]=="ＡＡ"){
-                    acc[key]['grade']['AA'] += Number(sub[5]);
-                }
-                else if(sub[6]=="Ａ"){
-                    acc[key]['grade']['A'] += Number(sub[5]);
-                }
-                else if(sub[6]=="Ｂ"){
-                    acc[key]['grade']['B'] += Number(sub[5]);
-                }
-                else if(sub[6]=="Ｃ"){
-                    acc[key]['grade']['C'] += Number(sub[5]);
-                }
-                else if(sub[6]=="Ｄ"){
-                    acc[key]['grade']['D'] += Number(sub[5]);
-                }
-                else if(sub[6]=="Ｅ"){
-                    acc[key]['grade']['E'] += Number(sub[5]);
-                }
-            }
+        let kubun = sub[topLevelKey];
+        if (!kubunTypes.includes(kubun)) return acc;
+        acc[key][kubun].creditSumAll += Number(sub.credit);
+        if (sub.gpaScope == '○' && sub.grade !== '') {
+            acc[key][kubun].creditSum += Number(sub.credit);
         }
-        else {
-            acc[key]['spcCreditSumAll'] += Number(sub[5]);
-            if (sub[7] == '○') {
-                acc[key]['spcCreditSum'] += Number(sub[5]);
-            }
-            if (sub[6] !== '') {
-                acc[key]['spcGpSum'] += Number(sub[5]) * convGrade(sub[6]);
-            }
-            if(sub[6]=="ＡＡ"){
-                acc[key]['grade']['AA'] += Number(sub[5]);
-            }
-            else if(sub[6]=="Ａ"){
-                acc[key]['grade']['A'] += Number(sub[5]);
-            }
-            else if(sub[6]=="Ｂ"){
-                acc[key]['grade']['B'] += Number(sub[5]);
-            }
-            else if(sub[6]=="Ｃ"){
-                acc[key]['grade']['C'] += Number(sub[5]);
-            }
-            else if(sub[6]=="Ｄ"){
-                acc[key]['grade']['D'] += Number(sub[5]);
-            }
-            else if(sub[6]=="Ｅ"){
-                acc[key]['grade']['E'] += Number(sub[5]);
+        if (sub.grade !== '') {
+            acc[key][kubun].gpSum += Number(sub.credit) * convGrade(sub.grade);
+            if (gradeLabels.includes(sub.grade)) {
+                acc[key][kubun].grade[sub.grade] += Number(sub.credit);
             }
         }
         return acc;
     }, {});
+
     let sortedKeys = Object.keys(preSortedData).sort();
     let sortedData = {};
-
     sortedKeys.forEach(key => {
         sortedData[key] = preSortedData[key];
     });
-    // console.log(sortedData);
-    let spcCreditSums = [];
-    let spcCreditSumsAll = [];
-    let genCreditSums = [];
-    let genCreditSumsAll = [];
-    let spcGpas = [];
-    let genGpas = [];
-    let gpa = [];
+
+    let labels = Object.keys(sortedData);
+
+    // 区分ごとに配列を用意
+    let creditSums = {};
+    let creditSumsAll = {};
+    let gpas = {};
+    kubunTypes.forEach(type => {
+        creditSums[type] = [];
+        creditSumsAll[type] = [];
+        gpas[type] = [];
+    });
+    let totalGpa = [];
     let cumulGpa = [];
     let cumulGp = 0;
     let cumulCredit = 0;
-    for (let key in sortedData) {
-        spcCreditSums.push(sortedData[key]['spcCreditSum']);
-        spcCreditSumsAll.push(sortedData[key]['spcCreditSumAll']);
-        genCreditSums.push(sortedData[key]['genCreditSum']);
-        genCreditSumsAll.push(sortedData[key]['genCreditSumAll']);
-        if(sortedData[key]['spcGpSum'] !== 0){
-            spcGpas.push((sortedData[key]['spcGpSum'] / sortedData[key]['spcCreditSum']).toFixed(2));
-        }
-        else{
-            spcGpas.push(null);
-        }
-        if(sortedData[key]['genGpSum'] !== 0){
-            genGpas.push((sortedData[key]['genGpSum'] / sortedData[key]['genCreditSum']).toFixed(2));
-        }
-        else{
-            genGpas.push(null);
-        }
-        if(sortedData[key]['spcGpSum'] !== 0 || sortedData[key]['genGpSum'] !== 0){
-            gpa.push(((sortedData[key]['spcGpSum']+sortedData[key]['genGpSum'])/(sortedData[key]['spcCreditSum']+sortedData[key]['genCreditSum'])).toFixed(2));
-            cumulCredit += sortedData[key]['spcCreditSum']+sortedData[key]['genCreditSum'];
-            cumulGp += sortedData[key]['spcGpSum']+sortedData[key]['genGpSum'];
-            cumulGpa.push((cumulGp/cumulCredit).toFixed(2));
-        }
-        else{
-            gpa.push(null);
+
+    for (let key of Object.keys(sortedData)) {
+        let totalGpSum = 0;
+        let totalCreditSum = 0;
+        kubunTypes.forEach(type => {
+            const obj = sortedData[key][type] || {};
+            creditSums[type].push(obj.creditSum || 0);
+            creditSumsAll[type].push(obj.creditSumAll || 0);
+            let gpaVal = (obj.gpSum && obj.creditSum) ? (obj.gpSum / obj.creditSum).toFixed(2) : null;
+            gpas[type].push(gpaVal);
+            totalGpSum += obj.gpSum || 0;
+            totalCreditSum += obj.creditSum || 0;
+        });
+        if (totalGpSum !== 0 && totalCreditSum !== 0) {
+            totalGpa.push((totalGpSum / totalCreditSum).toFixed(2));
+            cumulCredit += totalCreditSum;
+            cumulGp += totalGpSum;
+            cumulGpa.push((cumulGp / cumulCredit).toFixed(2));
+        } else {
+            totalGpa.push(null);
             cumulGpa.push(null);
         }
     }
-    let labels = Object.keys(sortedData);
 
+    // 表示用データ生成
+    let dataTable = [];
+    labels.forEach((label, index) => {
+        let row = [label];
+        kubunTypes.forEach(type => {
+            row.push((creditSums[type][index] || 0) + ' / ' + (creditSumsAll[type][index] || 0));
+        });
+        kubunTypes.forEach(type => {
+            row.push(gpas[type][index] !== null && gpas[type][index] !== undefined ? gpas[type][index] : '-');
+        });
+        row.push(totalGpa[index] !== null && totalGpa[index] !== undefined ? totalGpa[index] : '-');
+        row.push(cumulGpa[index] !== null && cumulGpa[index] !== undefined ? cumulGpa[index] : '-'); // 累積GPAを追加
+        dataTable.push(row);
+    });
+
+    // 列名も動的に
+    let columns = ['年度'];
+    kubunTypes.forEach(type => columns.push(type + '単位'));
+    kubunTypes.forEach(type => columns.push(type + 'GPA'));
+    columns.push('合計GPA');
+    columns.push('累積GPA'); // 累積GPA列を追加
+
+    // 成績分布テーブル
+    let gradeData = [];
+    labels.forEach(label => {
+        // 年度ごとに全区分の合計を集計
+        let totalGrades = {};
+        gradeLabels.forEach(label => {
+            totalGrades[label] = 0;
+        });
+        // let totalGrades = { 'AA': 0, 'A': 0, 'B': 0, 'C': 0, 'D': 0, 'E': 0 };
+        kubunTypes.forEach(type => {
+            const gradeObj = (sortedData[label][type] && sortedData[label][type].grade) ? sortedData[label][type].grade : {};
+            gradeLabels.forEach(g => {
+                totalGrades[g] += gradeObj[g] || 0;
+            });
+        });
+        gradeData.push([
+            label,
+            ...gradeLabels.map(g => totalGrades[g])
+        ]);
+    });
+
+    // 合計行（全年度合計）
+    let totalGradesAll = {};
+    gradeLabels.forEach(label => {
+        totalGradesAll[label] = 0;
+    });
+    // let totalGradesAll = { 'AA': 0, 'A': 0, 'B': 0, 'C': 0, 'D': 0, 'E': 0 };
+    labels.forEach(label => {
+        kubunTypes.forEach(type => {
+            const gradeObj = (sortedData[label][type] && sortedData[label][type].grade) ? sortedData[label][type].grade : {};
+            gradeLabels.forEach(g => {
+                totalGradesAll[g] += gradeObj[g] || 0;
+            });
+        });
+    });
+    gradeData.push([
+        '合計',
+        ...gradeLabels.map(g => totalGradesAll[g])
+    ]);
+
+    // 表示部分
     let targ = document.querySelector('#funcForm > hr.ui-separator.ui-state-default.ui-corner-all');
     let sibling = targ.nextElementSibling;
     let found = false;
     let container;
     let minicontainer;
     let subcontainer;
-    let table;
     let figure;
-    let chart;
     while (sibling) {
         if (sibling.tagName.toLowerCase() === 'div' && sibling.getAttribute('data-added-by') === 'me') {
             found = true;
@@ -142,252 +166,243 @@ function keepFigure(){
         }
         sibling = sibling.nextElementSibling;
     }
-    if(found==false){
+    if (found == false) {
         container = document.createElement('div');
         container.id = 'figureContainer';
         container.setAttribute('data-added-by', 'me');
         container.style.display = 'grid';
-        container.style.gridTemplateColumns = 'auto auto';
+        container.style.gridTemplateColumns = '1fr 1fr';
         container.style.alignItems = 'flex-start';
         container.style.gap = '5px';
         container.style.width = '100%';
+        container.style.maxWidth = '100%';
+        container.style.width = 'auto';
         container.style.boxSizing = 'border-box';
-        container.style.margin = '0 auto';
-        container.style.padding = '0 10px';
+        container.style.margin = 'auto auto';
+        container.style.padding = '10px 10px';
         container.style.border = '1px solid #ccc';
         container.style.borderRadius = '5px';
         container.style.backgroundColor = '#f9f9f9';
         container.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
         container.style.position = 'relative';
-        container.style.zIndex = '9999';
+        // container.style.zIndex = '9999';
         container.style.overflow = 'auto';
-        container.style.maxWidth = '100%';
-        container.style.maxHeight = '100%';
+        // container.style.maxWidth = '100%';
+        // container.style.maxHeight = '100%';
         container.style.overflowY = 'auto';
-        container.style.overflowX = 'hidden';
+        // container.style.overflowX = 'hidden';
         container.style.fontSize = '14px';
-        // container.style.fontFamily = 'Arial, sans-serif';
         container.style.lineHeight = '1.5';
         container.style.color = '#333';
-        container.style.height = '55vh';
+        container.style.height = '50vh';
         minicontainer = document.createElement('div');
         minicontainer.id = 'minicontainer';
         container.appendChild(minicontainer);
-        minicontainer.style.width = '40vw';
-        minicontainer.style.margin = 'auto';
-        minicontainer.style.flex = '1 1 auto';
+        // minicontainer.style.width = '40vw';
+        minicontainer.style.width = '100%';
+        minicontainer.style.height = '100%';
+        minicontainer.style.maxWidth = '100%';
+        minicontainer.style.margin = '0';
+        // minicontainer.style.flex = '1 1 auto';
         minicontainer.style.gridRow = '1';
+        minicontainer.style.display = 'flex';
+        minicontainer.style.justifyContent = 'center';
+        minicontainer.style.alignItems = 'center';
+        // minicontainer.style.margin = '0 auto';
         targ.after(container);
         subcontainer = document.createElement('div');
         subcontainer.id = 'subcontainer';
         container.appendChild(subcontainer);
-        subcontainer.style.width = '40vw';
-        subcontainer.style.margin = 'auto';
-        subcontainer.style.flex = '1 1 auto';
+        // subcontainer.style.width = '40vw';
+        subcontainer.style.width = '100%';
+        subcontainer.style.height = '100%';
+        subcontainer.style.maxWidth = '100%';
+        subcontainer.style.margin = '0';
+        // subcontainer.style.flex = '1 1 auto';
         subcontainer.style.gridRow = '2';
-        subcontainer.style.marginBottom = '10px';
+        // subcontainer.style.marginBottom = '10px';
+        subcontainer.style.display = 'flex';
+        subcontainer.style.justifyContent = 'center';
+        subcontainer.style.alignItems = 'center';
         targ.after(container);
-        // table = document.createElement('table');
 
-        let data = [];
-        labels.forEach((label, index) => {
-            let row = [
-                label,
-                spcCreditSums[index] + ' / ' + spcCreditSumsAll[index],
-                genCreditSums[index] + ' / ' + genCreditSumsAll[index],
-                spcGpas[index],
-                genGpas[index],
-                gpa[index]
-            ].map(text => (text !== undefined && text !== null) ? text : '-');
-            data.push(row);
-        });
+        // figure用のリサイズ用コンテナを作成
+        const figureresizecontainer = document.createElement('div');
+        figureresizecontainer.id = 'figureresizecontainer';
+        figureresizecontainer.style.width = '100%';
+        figureresizecontainer.style.height = '100%';
+        figureresizecontainer.style.display = 'flex';
+        figureresizecontainer.style.alignItems = 'center';
+        figureresizecontainer.style.justifyContent = 'center';
+        figureresizecontainer.style.gridRow = '1';
 
-        table = new gridjs.Grid({
-            columns: ['年度', '専門単位', '全学単位', '専門GPA', '全学GPA', '合計GPA'],
-            data: data,
-            style: {
-                th: {
-                    border: '1px solid #ddd',
-                    padding: '2px',
-                    backgroundColor: '#f2f2f2',
-                    textAlign: 'center',
-                },
-                td: {
-                    border: '1px solid #ddd',
-                    padding: '2px',
-                    textAlign: 'center',
-                    height: '4.5vh',
-                    width: '3vw',
-                    minWidth: '3em',
-                },
-                table: {
-                  'font-size': '15px',
-                  marginRight: '3px',
-                  maxWidth: '90%',
-                }
-            }
-        }).render(minicontainer);
-
-        let gradeData = [];
-        labels.forEach((label, index) => {
-            let row = [
-                label,
-                sortedData[label]['grade']['AA'] || 0,
-                sortedData[label]['grade']['A'] || 0,
-                sortedData[label]['grade']['B'] || 0,
-                sortedData[label]['grade']['C'] || 0,
-                sortedData[label]['grade']['D'] || 0,
-                sortedData[label]['grade']['E'] || 0
-            ];
-            gradeData.push(row);
-        });
-
-        let totalGrades = { 'AA': 0, 'A': 0, 'B': 0, 'C': 0, 'D': 0, 'E': 0 };
-        labels.forEach(label => {
-            totalGrades['AA'] += sortedData[label]['grade']['AA'] || 0;
-            totalGrades['A'] += sortedData[label]['grade']['A'] || 0;
-            totalGrades['B'] += sortedData[label]['grade']['B'] || 0;
-            totalGrades['C'] += sortedData[label]['grade']['C'] || 0;
-            totalGrades['D'] += sortedData[label]['grade']['D'] || 0;
-            totalGrades['E'] += sortedData[label]['grade']['E'] || 0;
-        });
-        // 合計行を追加
-        gradeData.push([
-            '合計',
-            totalGrades['AA'],
-            totalGrades['A'],
-            totalGrades['B'],
-            totalGrades['C'],
-            totalGrades['D'],
-            totalGrades['E']
-        ]);
-
-        gradeTable = new gridjs.Grid({
-            columns: ['年度', 'AA', 'A', 'B', 'C', 'D', 'E'], // 列名
-            data: gradeData,
-            style: {
-                th: {
-                    border: '1px solid #ddd',
-                    padding: '2px',
-                    backgroundColor: '#f2f2f2',
-                    textAlign: 'center',
-                },
-                td: {
-                    border: '1px solid #ddd',
-                    padding: '2px',
-                    textAlign: 'center',
-                    height: '4.5vh',
-                    width: '3vw',
-                    minWidth: '3em',
-                },
-                table: {
-                    'font-size': '15px',
-                    marginRight: '3px',
-                    maxWidth: '90%',
-                }
-            }
-        }).render(subcontainer); // 既存の `minicontainer` に追加
-
-        // table.setAttribute('data-added-by', 'me');
-        // table.style.width = '40%';
-        // table.style.height = '200%';
-        // table.style.margin = '10% auto';
-        // container.appendChild(table);
-        // let thead = document.createElement('thead');
-        // let headerRow = document.createElement('tr');
-        // ['年度', '専門単位', '全学単位', '専門GPA', '全学GPA', '合計GPA'].forEach(text => {
-        //     let th = document.createElement('th');
-        //     th.innerText = text;
-        //     th.style.border = '1px solid #ddd';
-        //     th.style.padding = '6px';
-        //     th.style.backgroundColor = '#f2f2f2';
-        //     th.style.textAlign = 'center';
-        //     headerRow.appendChild(th);
-        // });
-        // thead.appendChild(headerRow);
-        // table.appendChild(thead);
-
-        // let tbody = document.createElement('tbody');
-        // labels.forEach((label, index) => {
-        //     let row = document.createElement('tr');
-        //     [label, spcCreditSums[index]+' / '+spcCreditSumsAll[index], genCreditSums[index]+' / '+genCreditSumsAll[index], spcGpas[index], genGpas[index], gpa[index]].forEach(text => {
-        //         let td = document.createElement('td');
-        //         td.innerText = (text !== undefined && text !== null) ? text : '-';
-        //         td.style.border = '1px solid #ddd';
-        //         td.style.padding = '6px';
-        //         td.style.textAlign = 'center';
-        //         row.appendChild(td);
-        //     });
-        //     tbody.appendChild(row);
-        // });
-        // table.appendChild(tbody);
-
-        let gpaScale = [...spcGpas, ...genGpas, ...gpa, ...cumulGpa].filter(gpa => gpa !== null);
-        let minGpa = Math.min(...gpaScale);
-        let maxGpa = Math.max(...gpaScale);
+        // figure(canvas)を作成
         figure = document.createElement('canvas');
+        figure.id = 'gpaChart';
         figure.setAttribute('data-added-by', 'me');
-        figure.style.maxWidth = '50vw';
-        figure.style.maxHeight = '50vh';
-        figure.style.margin = 'auto';
-        figure.style.padding = '0 20px';
+        figure.style.maxWidth = '100%';
+        figure.style.display = 'block';
+        figure.style.boxSizing = 'border-box';
         figure.style.flex = '1 1 auto';
-        figure.style.gridRow = '1';
-        container.appendChild(figure);
+
+        // figureresizecontainerにfigureを追加
+        figureresizecontainer.appendChild(figure);
+
+        // containerにfigureresizecontainerを追加
+        container.appendChild(figureresizecontainer);
+
         targ.after(container);
-        chart = new Chart(figure, {
+
+        // 幅取得後に高さを幅の1/4に設定
+        requestAnimationFrame(() => {
+            const w = figureresizecontainer.offsetWidth || 400;
+            const h = Math.floor(w / 4);
+            figure.style.width = w + 'px';
+            figure.style.height = h + 'px';
+            figure.width = w;
+            figure.height = h;
+        });
+    } else {
+        minicontainer = container.querySelector('#minicontainer');
+        subcontainer = container.querySelector('#subcontainer');
+        figure = container.querySelector('#gpaChart');
+        minicontainer.innerHTML = '';
+        subcontainer.innerHTML = '';
+        figure.innerHTML = '';
+    }
+
+    // テーブル表示
+    new gridjs.Grid({
+        columns: columns,
+        data: dataTable,
+        style: {
+            th: {
+                border: '1px solid #ddd',
+                padding: '2px',
+                backgroundColor: '#f2f2f2',
+                textAlign: 'center',
+                whiteSpace: 'normal',
+                wordBreak: 'break-all',
+                width: 'auto',
+                maxWidth: '4rem',
+            },
+            td: {
+                border: '1px solid #ddd',
+                padding: '2px',
+                textAlign: 'center',
+                height: '4.5vh',
+                // width: '3vw',
+                // minWidth: '3em',
+                whiteSpace: 'normal',
+                wordBreak: 'break-all',
+                maxWidth: '4rem',
+            },
+            table: {
+                'font-size': '15px',
+                // marginRight: '3px',
+                maxWidth: '100%',
+                tableLayout: 'fixed',
+                width: '100%',
+                height: '100%',
+            }
+        }
+    }).render(minicontainer);
+
+    // 成績分布テーブル
+    new gridjs.Grid({
+        columns: ['年度', ...gradeLabels],
+        data: gradeData,
+        style: {
+            th: {
+                border: '1px solid #ddd',
+                padding: '2px',
+                backgroundColor: '#f2f2f2',
+                textAlign: 'center',
+                whiteSpace: 'normal',
+                wordBreak: 'break-all',
+                width: 'auto',
+                maxWidth: '4rem',
+            },
+            td: {
+                border: '1px solid #ddd',
+                padding: '2px',
+                textAlign: 'center',
+                height: '4.5vh',
+                // width: '3vw',
+                // minWidth: '3em',
+                whiteSpace: 'normal',
+                wordBreak: 'break-all',
+                maxWidth: '4rem',
+            },
+            table: {
+                'font-size': '15px',
+                // marginRight: '3px',
+                maxWidth: '100%',
+                tableLayout: 'fixed',
+                width: '100%',
+                height: '100%',
+            }
+        }
+    }).render(subcontainer);
+
+    // グラフ描画
+    let gpaScale = [];
+    kubunTypes.forEach(type => {
+        gpaScale = gpaScale.concat(gpas[type]);
+    });
+    gpaScale = gpaScale.concat(totalGpa, cumulGpa);
+    gpaScale = gpaScale.filter(gpa => gpa !== null);
+
+    let datasets = [];
+    kubunTypes.forEach(type => {
+        datasets.push({
+            label: type + '単位',
+            data: creditSums[type],
+            borderWidth: 1,
+            yAxisID: 'y-axis-0',
+            type: 'bar'
+        });
+    });
+    kubunTypes.forEach(type => {
+        datasets.push({
+            label: type + 'GPA',
+            data: gpas[type],
+            borderWidth: 2,
+            yAxisID: 'y-axis-1',
+            type: 'line'
+        });
+    });
+    datasets.push({
+        label: '合計GPA',
+        data: totalGpa,
+        borderWidth: 2,
+        yAxisID: 'y-axis-1',
+        type: 'line'
+    });
+    datasets.push({
+        label: '累積GPA',
+        data: cumulGpa,
+        borderWidth: 2,
+        yAxisID: 'y-axis-1',
+        type: 'line'
+    });
+
+    let minGpa = Math.min(...gpaScale);
+    let maxGpa = Math.max(...gpaScale);
+
+    if (found==false) {
+        new Chart(figure, {
             type: 'bar',
             plugins: [ChartDataLabels],
             data: {
                 labels: labels,
-                datasets: [
-                    {
-                        label: '専門単位',
-                        data: spcCreditSums,
-                        borderWidth: 1,
-                        yAxisID: 'y-axis-0'
-                    },
-                    {
-                        label: '全学単位',
-                        data: genCreditSums,
-                        borderWidth: 1,
-                        yAxisID: 'y-axis-0'
-                    },
-                    {
-                        label: '専門GPA',
-                        data: spcGpas,
-                        type: 'line',
-                        borderWidth: 2,
-                        yAxisID: 'y-axis-1'
-                    },
-                    {
-                        label: '全学GPA',
-                        data: genGpas,
-                        type: 'line',
-                        borderWidth: 2,
-                        yAxisID: 'y-axis-1'
-                    },
-                    {
-                        label: '合計GPA',
-                        data: gpa,
-                        type: 'line',
-                        borderWidth: 2,
-                        yAxisID: 'y-axis-1'
-                    },
-                    {
-                        label: '累積GPA',
-                        data: cumulGpa,
-                        type: 'line',
-                        borderWidth: 2,
-                        yAxisID: 'y-axis-1'
-                    }
-                ]
+                datasets: datasets
             },
             options: {
                 layout: {
                     padding: {
                         left: 0,
-                        right: 25,
+                        right: 0,
                         top: 0,
                         bottom: 0
                     }
@@ -409,13 +424,7 @@ function keepFigure(){
                     }
                 },
                 plugins: {
-                    // tooltip: {
-                    //     enabled: false
-                    // },
                     datalabels: {
-                        // display: function(context) {
-                        //     return context.dataset.label === '累積GPA' || context.dataset.label === '合計GPA';
-                        // },
                         display: false,
                         align: 'top',
                         anchor: 'end',
@@ -423,20 +432,38 @@ function keepFigure(){
                             size: 13,
                             color: 'black'
                         },
-                        formatter: function( value, context ) {
+                        formatter: function (value, context) {
                             return value !== (null || 0) ? value.toString() : '';
                         }
                     }
                 },
                 maintainAspectRatio: false,
-                // responsive: true,
+                responsive: true,
             }
         });
     }
 }
+
+const classToKey = {
+    colRishu: ["now"],
+    colKmkName: ["level2", "level3","combined", "subject"],
+    colTani: ["credit"],
+    colHyoka: ["grade"],
+    colGpaTgt: ["gpaScope"],
+    colNendo: ["year"],
+    colGakki: ["term"],
+    colKyuinName: ["teacher"],
+};
+
+chrome.storage?.local.get(['classToKey'], result => {
+  if (result.classToKey) classToKey = result.classToKey;
+});
+
 function correctData(){
     let elements = document.querySelectorAll('.ui-datatable.ui-widget.min-width.sskTable.ui-datatable-resizable');
     let data = [];
+    let classList = [];
+    let keyOrder = [];
     let isSingle;
     if(document.getElementById('funcForm:initPtn:0').checked==true){
         isSingle=true;
@@ -444,12 +471,12 @@ function correctData(){
     else{
         isSingle=false;
     }
+    // console.log(isSingle);
     if (elements.length > 0) {
         elements.forEach(element => {
             let rows=element.querySelectorAll('[role="row"');
-            // data[0]=["履修中","区分深度2","区分深度3","区分深度4","科目","単位数","評価","GPA対象","年度","学期","教員氏名"];
             let isFirstIteration = true;
-            let level2, level3, level4, level5, level6, now, subject, credit, grade, gpaScope, year, term, teacher;
+            let level1, level2, level3, level4, level5, level6, now, subject, credit, grade, gpaScope, year, term, teacher;
             let termElement=element.previousElementSibling;
             term=termElement.textContent;
             let fixedwordElement=termElement.previousElementSibling;
@@ -463,12 +490,23 @@ function correctData(){
                         if(isFirst==true){
                             isFirst=false;
                         }
+                        let classAttr=header.className.split(' ').find(cls => cls.startsWith('col'));
+                        // console.log(classAttr);
+                        classList.push(classAttr);
                     });
                     isFirstIteration=false;
                 }
                 else{
                     let subjectName=row.querySelector('[class^="colKmkName"]');
-                    if(subjectName.className=="colKmkName alignCenter kamokuLevel2"){
+                    if(subjectName.className=="colKmkName alignCenter kamokuLevel1"){
+                        level1=subjectName.textContent;
+                        level2="";
+                        level3="";
+                        level4="";
+                        level5="";
+                        level6="";
+                    }
+                    else if(subjectName.className=="colKmkName alignCenter kamokuLevel2"){
                         level2=subjectName.textContent;
                         level3="";
                         level4="";
@@ -497,12 +535,14 @@ function correctData(){
                         now = row.querySelector('[class^="colRishu"]') ? row.querySelector('[class^="colRishu"]').textContent : '';
                         subject = subjectName ? subjectName.textContent : '';
                         credit = row.querySelector('[class^="colTani"]') ? row.querySelector('[class^="colTani"]').textContent : '';
+                        score = row.querySelector('[class^="colSoten"]') ? row.querySelector('[class^="colSoten"]').textContent : '';
                         grade = row.querySelector('[class^="colHyoka"]') ? row.querySelector('[class^="colHyoka"]').textContent : '';
                         gpaScope = row.querySelector('[class^="colGpaTgt"]') ? row.querySelector('[class^="colGpaTgt"]').textContent : '';
                         if(isSingle==true){
                             year = row.querySelector('[class^="colNendo"]') ? row.querySelector('[class^="colNendo"]').textContent : '';
                             term = row.querySelector('[class^="colGakki"]') ? row.querySelector('[class^="colGakki"]').textContent : '';
                         }
+                        attendance = row.querySelector('[class^="colAttendRatio"]') ? row.querySelector('[class^="colAttendRatio"]').textContent : '';
                         teacher = row.querySelector('[class^="colKyuinName"]') ? row.querySelector('[class^="colKyuinName"]').textContent : '';
                         let combined;
                         if(level6==""){
@@ -521,17 +561,76 @@ function correctData(){
                         else{
                             combined=level6;
                         }
-                        data.push([now,level2,level3,combined,subject,credit,grade,gpaScope,year,term,teacher]);
+                        // data.push([now,level2,level3,combined,subject,credit,grade,gpaScope,year,term,teacher]);
+                        // data.push({
+                        //     now: now,
+                        //     level2: level2,
+                        //     level3: level3,
+                        //     combined: combined,
+                        //     subject: subject,
+                        //     credit: credit,
+                        //     grade: grade,
+                        //     gpaScope: gpaScope,
+                        //     year: year,
+                        //     term: term,
+                        //     teacher: teacher
+                        // });
+                        let values = {
+                            now: now,
+                            level1: level1,
+                            level2: level2,
+                            level3: level3,
+                            level4: level4,
+                            level5: level5,
+                            level6: level6,
+                            combined: combined,
+                            subject: subject,
+                            score: score,
+                            credit: credit,
+                            grade: grade,
+                            gpaScope: gpaScope,
+                            attendance: attendance,
+                            year: year,
+                            term: term,
+                            teacher: teacher
+                        };
+                        // console.log(values);
+                        let rowObj = {}
+                        keyOrder = [];
+                        classList.forEach(cls => {
+                            if (classToKey[cls]) {
+                                classToKey[cls].forEach(key => {
+                                    if (values[key]!==undefined) {
+                                        // console.log(values[key]);
+                                        rowObj[key] = values[key];
+                                        keyOrder.push(key);
+                                    }
+                                    // 何も代入しない場合はrowObjにプロパティが追加されません
+                                });
+                            }
+                        });
+                        if (!isSingle) {
+                            rowObj.year = year;
+                            rowObj.term = term;
+                            keyOrder.push('year');
+                            keyOrder.push('term');
+                        }
+                        // console.log(rowObj);
+                        data.push(rowObj);
                     }
                 }
             });
         });
     }
+    data.keyOrder = keyOrder;
+    // console.log(data.classList);
     return data;
 }
+
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= csv =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 function addButton(){
     let targ = document.querySelector('#funcForm > div.searchArea.min-width > span.btnPDFLocation > button:nth-child(1)');
     let sibling = targ.nextElementSibling;
@@ -559,134 +658,74 @@ function addButton(){
     });
     targ.after(pcsv);
 }
+
+const keyToHeader = {
+    now: "履修中",
+    level1: "区分深度1",
+    level2: "区分深度2",
+    level3: "区分深度3",
+    level4: "区分深度4",
+    level5: "区分深度5",
+    level6: "区分深度6",
+    combined: "区分深度4",
+    subject: "科目",
+    credit: "単位数",
+    score: "素点",
+    grade: "評価",
+    gpaScope: "GPA対象",
+    attendance: "出席率",
+    year: "年度",
+    term: "学期",
+    teacher: "教員氏名"
+};
+
 function downloadcsv(){
-    let elements = document.querySelectorAll('.ui-datatable.ui-widget.min-width.sskTable.ui-datatable-resizable');
-    let csv, data = [];
-    let book=XLSX.utils.book_new();
-    let isSingle;
-    if(document.getElementById('funcForm:initPtn:0').checked==true){
-        isSingle=true;
-    }
-    else{
-        isSingle=false;
-    }
-    if (elements.length > 0) {
-        elements.forEach(element => {
-            let rows=element.querySelectorAll('[role="row"');
-            // if(isSingle==true){
-            //     csv = "分野,系列,科目,履修中,教員氏名,GPA対象,単位,得点,評価,年度,学期\r\n";
-            // }
-            // else{
-                data[0]=["履修中","区分深度2","区分深度3","区分深度4","科目","単位数","評価","GPA対象","年度","学期","教員氏名"];
-                // data[0]=["分野","系列","科目","履修中","教員氏名","GPA対象","単位","得点","評価","年度","学期"];
-            // }
-            let isFirstIteration = true;
-            let level2, level3, level4, level5, level6, now, subject, credit, grade, gpaScope, year, term, teacher;
-            let termElement=element.previousElementSibling;
-            term=termElement.textContent;
-            let fixedwordElement=termElement.previousElementSibling;
-            let nendoEelement=fixedwordElement.previousElementSibling;
-            year=nendoEelement.textContent;
-            rows.forEach(row => {
-                if(isFirstIteration==true){
-                    let isFirst=true;
-                    headers=row.querySelectorAll('[role="columnheader"]');
-                    headers.forEach(header => {
-                        if(isFirst==true){
-                            isFirst=false;
-                        }
-                        else{
-                            // console.log(header.textContent);
-                        }
-                    });
-                    isFirstIteration=false;
-                }
-                else{
-                    let subjectName=row.querySelector('[class^="colKmkName"]');
-                    if(subjectName.className=="colKmkName alignCenter kamokuLevel2"){
-                        level2=subjectName.textContent;
-                        level3="";
-                        level4="";
-                        level5="";
-                        level6="";
-                    }
-                    else if(subjectName.className=="colKmkName alignCenter kamokuLevel3"){
-                        level3=subjectName.textContent;
-                        level4="";
-                        level5="";
-                        level6="";
-                    }
-                    else if(subjectName.className=="colKmkName alignCenter kamokuLevel4"){
-                        level4=subjectName.textContent;
-                        level5="";
-                        level6="";
-                    }
-                    else if(subjectName.className=="colKmkName alignCenter kamokuLevel5"){
-                        level5=subjectName.textContent;
-                        level6="";
-                    }
-                    else if(subjectName.className=="colKmkName alignCenter kamokuLevel6"){
-                        level6=subjectName.textContent;
-                    }
-                    else{
-                        now = row.querySelector('[class^="colRishu"]') ? row.querySelector('[class^="colRishu"]').textContent : '';
-                        subject = subjectName ? subjectName.textContent : '';
-                        credit = row.querySelector('[class^="colTani"]') ? row.querySelector('[class^="colTani"]').textContent : '';
-                        grade = row.querySelector('[class^="colHyoka"]') ? row.querySelector('[class^="colHyoka"]').textContent : '';
-                        gpaScope = row.querySelector('[class^="colGpaTgt"]') ? row.querySelector('[class^="colGpaTgt"]').textContent : '';
-                        if(isSingle==true){
-                            year = row.querySelector('[class^="colNendo"]') ? row.querySelector('[class^="colNendo"]').textContent : '';
-                            term = row.querySelector('[class^="colGakki"]') ? row.querySelector('[class^="colGakki"]').textContent : '';
-                        }
-                        teacher = row.querySelector('[class^="colKyuinName"]') ? row.querySelector('[class^="colKyuinName"]').textContent : '';
-                        // if(isSingle==true){
-                        //     csv += level2 + "," + level3 + "," + subject + "," + now + "," + teacher + "," + gpaScope + "," + credit + "," + "" +"," + grade + "," + year + "," + term + "\r\n";
-                        //     // csv += now + "," + level2 + "," + level3 + "," + level4 + "," + level5 + "," + level6 + "," + credit + "," + grade + "," + gpaScope + "," + year + "," + term + "," + teacher + "\r\n";
-                        // }
-                        // else{
-                            let combined;
-                            if(level6==""){
-                                if(level5==""){
-                                    if(level4==""){
-                                        combined="";
-                                    }
-                                    else{
-                                        combined=level4;
-                                    }
-                                }
-                                else{
-                                    combined=level5;
-                                }
-                            }
-                            else{
-                                combined=level6;
-                            }
-                            data.push([now,level2,level3,combined,subject,credit,grade,gpaScope,year,term,teacher]);
-                        // }
-                    }
-                }
+    let data = correctData(); // ここで全データを取得
+    let book = XLSX.utils.book_new();
+
+    // ヘッダー（サイト表示順に合わせて）
+    const header = data.keyOrder.map(key => keyToHeader[key] || key);
+    // console.log(header);
+    // const header = ["履修中","区分深度2","区分深度3","区分深度4","科目","単位数","評価","GPA対象","年度","学期","教員氏名"];
+
+    let sheetData = [header];
+    data.forEach(row => {
+        let sheetValues = [];
+        data.keyOrder.forEach(key => {
+            sheetValues.push(row[key]);
+        });
+        sheetData.push(sheetValues);
+    });
+    let sheet = XLSX.utils.aoa_to_sheet(sheetData);
+    XLSX.utils.book_append_sheet(book, sheet, "通算");
+
+    // 年度・学期ごとにまとめる
+    let grouped = {};
+    data.forEach(row => {
+        let key = row.year + row.term;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(row);
+    });
+
+    Object.keys(grouped).forEach(key => {
+        let rows = grouped[key];
+        let sheetData = [header];
+        rows.forEach(row => {
+            let sheetValues = [];
+            data.keyOrder.forEach(key => {
+                sheetValues.push(row[key]);
             });
-            // if(isSingle==false){
-                let sheet=XLSX.utils.aoa_to_sheet(data);
-                data=[];
-                XLSX.utils.book_append_sheet(book,sheet,year+"年度"+term);
-            // }
+            sheetData.push(sheetValues);
         });
-    }
-    let blob;
-    let fileName;
-    // if(isSingle==true){
-    //     let bom = new Uint8Array([0xef, 0xbb, 0xbf]);
-    //     blob = new Blob([bom, csv], { type: "text/csv" });
-    //     fileName = "credit-new.csv";
-    // }
-    // else{
-        let binary = XLSX.write(book, { type: 'array' });
-        blob = new Blob([binary], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        });
-        fileName = "credit-new-term.xlsx";
-    // }
+        let sheet = XLSX.utils.aoa_to_sheet(sheetData);
+        XLSX.utils.book_append_sheet(book, sheet, rows[0].year + "年度" + rows[0].term);
+    });
+
+    let binary = XLSX.write(book, { type: 'array' });
+    let blob = new Blob([binary], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    let fileName = "credit-new-term.xlsx";
     let objectUrl = URL.createObjectURL(blob);
     let downloadLink = document.createElement("a");
     downloadLink.download = fileName;
@@ -709,140 +748,51 @@ const config = {
     attributeOldValue: false,
     characterDataOldValue: false
 };
+
 let debounceTimer;
-let showGeneral=true;
-let showProfessional=true;
-function gpaCal(element){
-    rows=element.querySelectorAll('[role="row"');
-    let gpSum=0;
-    let creditSum=0;
-    let gpCreditSum=0;
-    let acceptedSum=0;
-    let isFirstIteration = true;
-    let level2, level3, level4, level5, level6;
-    rows.forEach(row => {
-        if(isFirstIteration==true){
-            let isFirst=true;
-            headers=row.querySelectorAll('[role="columnheader"]');
-            headers.forEach(header => {
-                if(isFirst==true){
-                    isFirst=false;
-                }
-                else{
-                    // console.log(header.textContent);
-                }
-            });
-            isFirstIteration=false;
-        }
-        else{
-            row.style.display="";
-            let subjectName=row.querySelector('[class^="colKmkName"]');
-            if(subjectName.className=="colKmkName alignCenter kamokuLevel2"){
-                level2=subjectName.textContent;
-                level3="";
-                level4="";
-                level5="";
-                level6="";
-                if((showGeneral==false&&level2=="全学教育科目")||(showProfessional==false&&level2=="専門教育科目")){
-                    row.style.display="none";
-                }
-            }
-            else if(subjectName.className=="colKmkName alignCenter kamokuLevel3"){
-                level3=subjectName.textContent;
-                level4="";
-                level5="";
-                level6="";
-                if((showGeneral==false&&level2=="全学教育科目")||(showProfessional==false&&level2=="専門教育科目")){
-                    row.style.display="none";
-                }
-            }
-            else if(subjectName.className=="colKmkName alignCenter kamokuLevel4"){
-                level4=subjectName.textContent;
-                level5="";
-                level6="";
-                if((showGeneral==false&&level2=="全学教育科目")||(showProfessional==false&&level2=="専門教育科目")){
-                    row.style.display="none";
-                }
-            }
-            else if(subjectName.className=="colKmkName alignCenter kamokuLevel5"){
-                level5=subjectName.textContent;
-                level6="";
-                if((showGeneral==false&&level2=="全学教育科目")||(showProfessional==false&&level2=="専門教育科目")){
-                    row.style.display="none";
-                }
-            }
-            else if(subjectName.className=="colKmkName alignCenter kamokuLevel6"){
-                level6=subjectName.textContent;
-                if((showGeneral==false&&level2=="全学教育科目")||(showProfessional==false&&level2=="専門教育科目")){
-                    row.style.display="none";
-                }
-            }
-            else{
-                if((showGeneral==false&&level2=="全学教育科目")||(showProfessional==false&&level2=="専門教育科目")){
-                    row.style.display="none";
-                    return;
-                }
-                let gpaTgt=row.querySelector('[class^="colGpaTgt"]');
-                let tani=row.querySelector('[class^="colTani"]');
-                let credit=Number(tani.textContent);
-                let hyoka=row.querySelector('[class^="colHyoka"]');
-                if(gpaTgt){
-                    if(gpaTgt.textContent!="○"){
-                        creditSum+=credit;
-                        if(hyoka && hyoka.textContent!=""){
-                            acceptedSum+=credit;
-                        }
-                        return;
-                    }
-                }
-                if(hyoka){
-                    let gp=convGrade(hyoka.textContent);
-                    if(gp==undefined){
-                        creditSum+=credit;
-                    }
-                    else{
-                        gpSum+=gp*credit;
-                        creditSum+=credit;
-                        gpCreditSum+=credit;
-                        acceptedSum+=credit;
-                    }
-                }
-                else{
-                    creditSum+=credit;
-                }
-            }
-        }
-    });
-    let gpa=gpSum/gpCreditSum;
-    if(gpSum==0){
-        gpa = "-";
+
+// let gradeMap = {
+//     "ＡＡ": 4.0,
+//     "Ａ": 3.0,
+//     "Ｂ": 2.0,
+//     "Ｃ": 1.0,
+//     "Ｄ": 0.0,
+//     "Ｅ": 0.0,
+//     "": undefined
+// };
+let gradeMapArr = [
+  { symbol: "ＡＡ", value: 4.0 },
+  { symbol: "Ａ", value: 3.0 },
+  { symbol: "Ｂ", value: 2.0 },
+  { symbol: "Ｃ", value: 1.0 },
+  { symbol: "Ｄ", value: 0.0 },
+  { symbol: "Ｅ", value: 0.0 },
+  { symbol: "", value: undefined }
+];
+
+// オブジェクト形式も用意
+let gradeMap = Object.fromEntries(gradeMapArr.map(item => [item.symbol, item.value]));
+
+// storageから取得して両方更新
+chrome.storage?.local.get(['gradeMap'], result => {
+  if (result.gradeMap) {
+    // 配列形式ならオブジェクトに変換
+    if (Array.isArray(result.gradeMap)) {
+      gradeMapArr = result.gradeMap;
+      gradeMap = Object.fromEntries(gradeMapArr.map(item => [item.symbol, item.value]));
+    } else if (typeof result.gradeMap === 'object') {
+      // 旧形式（オブジェクト）の場合も対応
+      gradeMap = result.gradeMap;
+      gradeMapArr = Object.entries(gradeMap).map(([symbol, value]) => ({ symbol, value }));
     }
-    else{
-        gpa = Math.round(gpa*100)/100;
-    }
-    // console.log(gpSum,creditSum,gpCreditSum,acceptedSum,gpa);
-    return [creditSum.toFixed(1),gpCreditSum.toFixed(1),acceptedSum.toFixed(1),gpa];
-};
-function convGrade(char){
-    if(char==""){
-        return undefined;
-    }
-    else if(char=="ＡＡ"){
-        return 4.0;
-    }
-    else if(char=="Ａ"){
-        return 3.0;
-    }
-    else if(char=="Ｂ"){
-        return 2.0;
-    }
-    else if(char=="Ｃ"){
-        return 1.0;
-    }
-    else{
-        return 0.0;
-    }
+  }
+});
+
+// 既存のconvGradeやObject.keys(gradeMap)はそのまま使える
+function convGrade(char, map = gradeMap) {
+  return map.hasOwnProperty(char) ? map[char] : 0.0;
 }
+
 function makeTable(element,grade){
     let sibling = element.nextElementSibling;
     let found = false;
@@ -911,6 +861,7 @@ function makeTable(element,grade){
     table.appendChild(tbody);
     element.after(table);
 };
+
 function createCheckbox(id, labelText, controlId, initialChecked, onChangeCallback) {
     const containerDiv = document.createElement('div');
     containerDiv.id = id;
@@ -957,13 +908,50 @@ function createCheckbox(id, labelText, controlId, initialChecked, onChangeCallba
     return containerDiv;
 }
 
-function addCheckbox() {
+/**
+ * データ内で最も上位（小さいN）のlevelKeyを自動で取得
+ * @returns {string} 例: "level1" や "level2"
+ */
+function getTopLevelKey() {
+    const data = correctData();
+    const levelKeys = ["level1", "level2", "level3", "level4", "level5", "level6"];
+    for (let key of levelKeys) {
+        if (data.some(row => row[key] && row[key] !== "")) {
+            return key;
+        }
+    }
+    // どれもなければデフォルト
+    return "level1";
+}
+
+/**
+ * 指定したlevelN（例: "level2"や"level1"）のユニーク値をcorrectDataから抽出
+ * @param {string} levelKey - 例: "level2" や "level1"
+ * @returns {Array<string>}
+ */
+function getLevelTypes(levelKey = getTopLevelKey()) {
+    const data = correctData();
+    const types = new Set();
+    data.forEach(row => {
+        if (row[levelKey]) types.add(row[levelKey]);
+    });
+    return Array.from(types);
+}
+
+// 指定したlevelの要素ごとに表示切替用のフラグを持つ
+let showLevel = {};
+
+/**
+ * levelKeyで指定した区分（例: level2, level1）ごとにチェックボックスを生成
+ * @param {string} levelKey - 例: "level2" や "level1"
+ */
+function addCheckbox(levelKey = getTopLevelKey()) {
     let container = document.createElement('div');
     container.id = 'fullWidthContainer';
     container.style.width = '100%';
     container.style.boxSizing = 'border-box';
 
-    let targetNode = document.querySelector('#funcForm\\:j_idt187');
+    let targetNode = document.querySelector('#funcForm hr');
     let sibling = targetNode.nextElementSibling;
     let found = false;
     while (sibling) {
@@ -977,52 +965,41 @@ function addCheckbox() {
         return;
     }
 
-    const checkbox1 = createCheckbox(
-        'funcForm:prolDispFlg',
-        '専門教育科目',
-        'ControlID-8',
-        true,
-        (checked) => {
-            showProfessional = checked;
-            let elements = document.querySelectorAll('.ui-datatable.ui-widget.min-width.sskTable.ui-datatable-resizable');
-            if (elements.length > 0) {
-                observer.disconnect();
-                elements.forEach(element => {
-                    let grade = gpaCal(element);
-                    makeTable(element, grade);
-                });
-                observer.observe(targetNode, config);
-            }
-        }
-    );
-
-    const checkbox2 = createCheckbox(
-        'funcForm:genDispFlg',
-        '全学教育科目',
-        'ControlID-9',
-        true,
-        (checked) => {
-            showGeneral = checked;
-            let elements = document.querySelectorAll('.ui-datatable.ui-widget.min-width.sskTable.ui-datatable-resizable');
-            if (elements.length > 0) {
-                observer.disconnect();
-                elements.forEach(element => {
-                    let grade = gpaCal(element);
-                    makeTable(element, grade);
-                });
-                observer.observe(targetNode, config);
-            }
-        }
-    );
+    // 指定したlevelの種類を取得
+    const levelTypes = getLevelTypes(levelKey);
+    // 初期値セット
+    levelTypes.forEach(type => {
+        if (!(type in showLevel)) showLevel[type] = true;
+    });
 
     const descriptionText = document.createElement('div');
     descriptionText.id = 'descriptionText';
     descriptionText.textContent = '表示切替';
     descriptionText.className = 'description-text';
-
     container.appendChild(descriptionText);
-    container.appendChild(checkbox1);
-    container.appendChild(checkbox2);
+
+    // 各lavelごとにチェックボックスを生成
+    levelTypes.forEach(type => {
+        const checkbox = createCheckbox(
+            `checkbox_${type}`,
+            type,
+            `ControlID-${type}`,
+            showLevel[type],
+            (checked) => {
+                showLevel[type] = checked;
+                let elements = document.querySelectorAll('.ui-datatable.ui-widget.min-width.sskTable.ui-datatable-resizable');
+                if (elements.length > 0) {
+                    observer.disconnect();
+                    elements.forEach(element => {
+                        let grade = gpaCal(element);
+                        makeTable(element, grade);
+                    });
+                    observer.observe(targetNode, config);
+                }
+            }
+        );
+        container.appendChild(checkbox);
+    });
 
     container.style.display = 'flex';
     container.style.justifyContent = 'space-around';
@@ -1044,6 +1021,135 @@ function addCheckbox() {
     container.style.padding = '10px 20px';
 
     targetNode.after(container);
+}
+
+// gpaCalのlevelKey対応
+function gpaCal(element, levelKey = getTopLevelKey()) {
+    rows = element.querySelectorAll('[role="row"');
+    let gpSum = 0;
+    let creditSum = 0;
+    let gpCreditSum = 0;
+    let acceptedSum = 0;
+    let isFirstIteration = true;
+    // level情報を辞書型で管理
+    let levels = {
+        level1: "",
+        level2: "",
+        level3: "",
+        level4: "",
+        level5: "",
+        level6: ""
+    };
+    rows.forEach(row => {
+        if (isFirstIteration == true) {
+            let isFirst = true;
+            headers = row.querySelectorAll('[role="columnheader"]');
+            headers.forEach(header => {
+                if (isFirst == true) {
+                    isFirst = false;
+                }
+            });
+            isFirstIteration = false;
+        }
+        else {
+            row.style.display = "";
+            let subjectName = row.querySelector('[class^="colKmkName"]');
+            // 各levelNの値をセット（辞書型で管理）
+            if (subjectName.className == "colKmkName alignCenter kamokuLevel1") {
+                levels.level1 = subjectName.textContent;
+                levels.level2 = "";
+                levels.level3 = "";
+                levels.level4 = "";
+                levels.level5 = "";
+                levels.level6 = "";
+                if (showLevel[levels[levelKey]] === false) {
+                    row.style.display = "none";
+                }
+            }
+            else if (subjectName.className == "colKmkName alignCenter kamokuLevel2") {
+                levels.level2 = subjectName.textContent;
+                levels.level3 = "";
+                levels.level4 = "";
+                levels.level5 = "";
+                levels.level6 = "";
+                if (showLevel[levels[levelKey]] === false) {
+                    row.style.display = "none";
+                }
+            }
+            else if (subjectName.className == "colKmkName alignCenter kamokuLevel3") {
+                levels.level3 = subjectName.textContent;
+                levels.level4 = "";
+                levels.level5 = "";
+                levels.level6 = "";
+                if (showLevel[levels[levelKey]] === false) {
+                    row.style.display = "none";
+                }
+            }
+            else if (subjectName.className == "colKmkName alignCenter kamokuLevel4") {
+                levels.level4 = subjectName.textContent;
+                levels.level5 = "";
+                levels.level6 = "";
+                if (showLevel[levels[levelKey]] === false) {
+                    row.style.display = "none";
+                }
+            }
+            else if (subjectName.className == "colKmkName alignCenter kamokuLevel5") {
+                levels.level5 = subjectName.textContent;
+                levels.level6 = "";
+                if (showLevel[levels[levelKey]] === false) {
+                    row.style.display = "none";
+                }
+            }
+            else if (subjectName.className == "colKmkName alignCenter kamokuLevel6") {
+                levels.level6 = subjectName.textContent;
+                if (showLevel[levels[levelKey]] === false) {
+                    row.style.display = "none";
+                }
+            }
+            else {
+                if (showLevel[levels[levelKey]] === false) {
+                    row.style.display = "none";
+                    return;
+                }
+                let gpaTgt = row.querySelector('[class^="colGpaTgt"]');
+                let tani = row.querySelector('[class^="colTani"]');
+                let credit = Number(tani.textContent);
+                let hyoka = row.querySelector('[class^="colHyoka"]');
+                if (gpaTgt) {
+                    if (gpaTgt.textContent != "○") {
+                        creditSum += credit;
+                        if (hyoka && hyoka.textContent != "") {
+                            acceptedSum += credit;
+                        }
+                        return;
+                    }
+                }
+                if (hyoka && hyoka.textContent != "") {
+                    let gp = convGrade(hyoka.textContent);
+                    if (gp == undefined) {
+                        creditSum += credit;
+                    }
+                    else {
+                        gpSum += gp * credit;
+                        creditSum += credit;
+                        gpCreditSum += credit;
+                        acceptedSum += credit;
+                    }
+                }
+                else {
+                    creditSum += credit;
+                }
+            }
+        }
+    });
+    let gpa = gpSum / gpCreditSum;
+    if (gpSum == 0) {
+        gpa = "-";
+    }
+    else {
+        gpa = Math.round(gpa * 100) / 100;
+    }
+    return [creditSum.toFixed(1), gpCreditSum.toFixed(1), acceptedSum.toFixed(1), gpa];
 }
 
 const callback = function(mutationsList, observer) {
