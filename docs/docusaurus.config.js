@@ -75,6 +75,10 @@ tagline: 'Calculate your GPA at Tohoku University',
         theme: {
           customCss: './src/css/custom.css',
         },
+        gtag: {
+          trackingID: 'G-52C4TH5CP3',
+          anonymizeIP: true,
+        },
       }),
     ],
   ],
