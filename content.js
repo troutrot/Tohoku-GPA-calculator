@@ -1,4 +1,110 @@
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- config =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+const domainDefaults = {
+  "unipa.bureau.tohoku.ac.jp": {
+    gradeMapArr: [
+      { symbol: "ＡＡ", value: 4.0 },
+      { symbol: "Ａ", value: 3.0 },
+      { symbol: "Ｂ", value: 2.0 },
+      { symbol: "Ｃ", value: 1.0 },
+      { symbol: "Ｄ", value: 0.0 },
+      { symbol: "Ｅ", value: 0.0 },
+      { symbol: "", value: undefined }
+    ],
+    classToKey: {
+      colRishu: ["now"],
+      colKmkName: ["level2", "level3", "combined", "subject"],
+      colTani: ["credit"],
+      colHyoka: ["grade"],
+      colGpaTgt: ["gpaScope"],
+      colNendo: ["year"],
+      colGakki: ["term"],
+      colKyuinName: ["teacher"],
+    }
+  },
+  "portal.kokugakuin.jp": {
+    gradeMapArr: [
+      { symbol: "S", value: 4.0 },
+      { symbol: "A", value: 3.0 },
+      { symbol: "B", value: 2.0 },
+      { symbol: "C", value: 1.0 },
+      { symbol: "D", value: 0.0 },
+      { symbol: "E", value: 0.0 },
+      { symbol: "", value: undefined }
+    ],
+    classToKey: {
+      colRishu: ["now"],
+      colKmkName: ["level1", "level2", "level3", "subject"],
+      colTani: ["credit"],
+      colHyoka: ["grade"],
+      colGpaTgt: ["gpaScope"],
+      colNendo: ["year"],
+      colGakki: ["term"],
+      colKyuinName: ["teacher"],
+      colSoten: ["score"]
+    }
+  }
+};
+
+// --- ドメイン判定 ---
+const currentDomain = location.hostname.replace(/^www\./, '');
+let defaultGradeMapArr = [
+  { symbol: "ＡＡ", value: 4.0 },
+  { symbol: "Ａ", value: 3.0 },
+  { symbol: "Ｂ", value: 2.0 },
+  { symbol: "Ｃ", value: 1.0 },
+  { symbol: "Ｄ", value: 0.0 },
+  { symbol: "Ｅ", value: 0.0 },
+  { symbol: "", value: undefined }
+];
+let defaultClassToKey = {
+  colRishu: ["now"],
+  colKmkName: ["level2", "level3", "combined", "subject"],
+  colTani: ["credit"],
+  colHyoka: ["grade"],
+  colGpaTgt: ["gpaScope"],
+  colNendo: ["year"],
+  colGakki: ["term"],
+  colKyuinName: ["teacher"],
+};
+
+if (domainDefaults[currentDomain]) {
+  defaultGradeMapArr = domainDefaults[currentDomain].gradeMapArr;
+  defaultClassToKey = domainDefaults[currentDomain].classToKey;
+}
+
+// --- 既存のgradeMapArr/classToKeyをdefaultGradeMapArr/defaultClassToKeyで初期化 ---
+let gradeMapArr = defaultGradeMapArr.slice();
+let classToKey = JSON.parse(JSON.stringify(defaultClassToKey));
+
+// オブジェクト形式も用意
+let gradeMap = Object.fromEntries(gradeMapArr.map(item => [item.symbol, item.value]));
+
+// storageから取得して両方更新（ただしドメイン既定値を優先）
+chrome.storage?.local.get(['gradeMap'], result => {
+  if (result.gradeMap && !domainDefaults[currentDomain]) {
+    // 配列形式ならオブジェクトに変換
+    if (Array.isArray(result.gradeMap)) {
+      gradeMapArr = result.gradeMap;
+      gradeMap = Object.fromEntries(gradeMapArr.map(item => [item.symbol, item.value]));
+    } else if (typeof result.gradeMap === 'object') {
+      // 旧形式（オブジェクト）の場合も対応
+      gradeMap = result.gradeMap;
+      gradeMapArr = Object.entries(gradeMap).map(([symbol, value]) => ({ symbol, value }));
+    }
+  }
+});
+
+chrome.storage?.local.get(['classToKey'], result => {
+  if (result.classToKey && !domainDefaults[currentDomain]) {
+    classToKey = result.classToKey;
+  }
+});
+
+// 以降はgradeMapArr, gradeMap, classToKeyをそのまま利用
+// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- figure =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -444,20 +550,20 @@ function keepFigure() {
     }
 }
 
-const classToKey = {
-    colRishu: ["now"],
-    colKmkName: ["level2", "level3","combined", "subject"],
-    colTani: ["credit"],
-    colHyoka: ["grade"],
-    colGpaTgt: ["gpaScope"],
-    colNendo: ["year"],
-    colGakki: ["term"],
-    colKyuinName: ["teacher"],
-};
+// const classToKey = {
+//     colRishu: ["now"],
+//     colKmkName: ["level2", "level3","combined", "subject"],
+//     colTani: ["credit"],
+//     colHyoka: ["grade"],
+//     colGpaTgt: ["gpaScope"],
+//     colNendo: ["year"],
+//     colGakki: ["term"],
+//     colKyuinName: ["teacher"],
+// };
 
-chrome.storage?.local.get(['classToKey'], result => {
-  if (result.classToKey) classToKey = result.classToKey;
-});
+// chrome.storage?.local.get(['classToKey'], result => {
+//   if (result.classToKey) classToKey = result.classToKey;
+// });
 
 function correctData(){
     let elements = document.querySelectorAll('.ui-datatable.ui-widget.min-width.sskTable.ui-datatable-resizable');
@@ -751,42 +857,33 @@ const config = {
 
 let debounceTimer;
 
-// let gradeMap = {
-//     "ＡＡ": 4.0,
-//     "Ａ": 3.0,
-//     "Ｂ": 2.0,
-//     "Ｃ": 1.0,
-//     "Ｄ": 0.0,
-//     "Ｅ": 0.0,
-//     "": undefined
-// };
-let gradeMapArr = [
-  { symbol: "ＡＡ", value: 4.0 },
-  { symbol: "Ａ", value: 3.0 },
-  { symbol: "Ｂ", value: 2.0 },
-  { symbol: "Ｃ", value: 1.0 },
-  { symbol: "Ｄ", value: 0.0 },
-  { symbol: "Ｅ", value: 0.0 },
-  { symbol: "", value: undefined }
-];
+// let gradeMapArr = [
+//   { symbol: "ＡＡ", value: 4.0 },
+//   { symbol: "Ａ", value: 3.0 },
+//   { symbol: "Ｂ", value: 2.0 },
+//   { symbol: "Ｃ", value: 1.0 },
+//   { symbol: "Ｄ", value: 0.0 },
+//   { symbol: "Ｅ", value: 0.0 },
+//   { symbol: "", value: undefined }
+// ];
 
-// オブジェクト形式も用意
-let gradeMap = Object.fromEntries(gradeMapArr.map(item => [item.symbol, item.value]));
+// // オブジェクト形式も用意
+// let gradeMap = Object.fromEntries(gradeMapArr.map(item => [item.symbol, item.value]));
 
-// storageから取得して両方更新
-chrome.storage?.local.get(['gradeMap'], result => {
-  if (result.gradeMap) {
-    // 配列形式ならオブジェクトに変換
-    if (Array.isArray(result.gradeMap)) {
-      gradeMapArr = result.gradeMap;
-      gradeMap = Object.fromEntries(gradeMapArr.map(item => [item.symbol, item.value]));
-    } else if (typeof result.gradeMap === 'object') {
-      // 旧形式（オブジェクト）の場合も対応
-      gradeMap = result.gradeMap;
-      gradeMapArr = Object.entries(gradeMap).map(([symbol, value]) => ({ symbol, value }));
-    }
-  }
-});
+// // storageから取得して両方更新
+// chrome.storage?.local.get(['gradeMap'], result => {
+//   if (result.gradeMap) {
+//     // 配列形式ならオブジェクトに変換
+//     if (Array.isArray(result.gradeMap)) {
+//       gradeMapArr = result.gradeMap;
+//       gradeMap = Object.fromEntries(gradeMapArr.map(item => [item.symbol, item.value]));
+//     } else if (typeof result.gradeMap === 'object') {
+//       // 旧形式（オブジェクト）の場合も対応
+//       gradeMap = result.gradeMap;
+//       gradeMapArr = Object.entries(gradeMap).map(([symbol, value]) => ({ symbol, value }));
+//     }
+//   }
+// });
 
 // 既存のconvGradeやObject.keys(gradeMap)はそのまま使える
 function convGrade(char, map = gradeMap) {

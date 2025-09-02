@@ -1,7 +1,7 @@
 {
     "name":"Tohoku GPA calculator",
     "description":"新学務情報システム上でのGPA計算と掲示科目一覧のダウンロード機能を追加",
-    "version":"2.2.7",
+    "version":"3.1.2",
     "permissions": ["storage"],
     "action": {
         "default_popup": "popup.html"
